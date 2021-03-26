@@ -1,0 +1,38 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © marssmarsshan
+// @version=4
+
+study(title="Buy Signal", shorttitle="Buy Signal", format=format.price, precision=2, resolution="", overlay=true)
+length = input(14, minval=1, title="Length")
+source = input(close, "Source", type = input.source)
+
+// ALL-TIME HIGH
+var highest = 0.0
+var timeframe = ""
+if (high >= highest )
+    highest := high
+
+// Get user input
+rsi_buy_level_channel_high = input(title="RSI Buy Level Channel(High)", type=input.integer, defval=50)
+rsi_buy_level_channel_low = input(title="RSI Buy Level Channel(Low)", type=input.integer, defval=43)
+percentage_drop = input(title="Percentage Drop from ATH", type=input.integer, defval=20)
+is_alltimehigh_shown = input(title="Show Alltime High ?", type=input.bool, defval=true)
+is_buy_signal_shown = input(title="Show Buy Signal ?", type=input.bool, defval=true)
+
+// Get RSI value
+rsi_value = rsi(source, length)
+
+// Bubble Strength Index (PentarhUdi)
+s = sma (close,28)
+[mid1,high1,low1] = bb (close,20,2)
+float bubble_strength_index = 0
+bubble_strength_index:=high > high1 ? high / s : 1 
+
+// Buy signal formula
+percentage = ( (highest - lowest(low,1)) / lowest(low,1) ) * 100
+buy_indicator = (rsi_value <= rsi_buy_level_channel_high and rsi_value >= rsi_buy_level_channel_low and percentage >= percentage_drop and bubble_strength_index == 1)
+
+// Plot signals to chart
+//plotshape(is_alltimehigh_shown ? buy_indicator, title="Buy Signal", location=location.abovebar, color=color.green, transp=0, style=shape.triangleup, text="BUY" : na)
+plotshape(is_buy_signal_shown ? buy_indicator : na)
+plot(is_alltimehigh_shown ? highest : na)
