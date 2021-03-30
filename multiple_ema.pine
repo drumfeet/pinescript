@@ -1,0 +1,30 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © marssmarsshan
+
+//@version=4
+study(title="Multiple Exponential Moving Averages", shorttitle="MEMA", overlay=true)
+
+len = input(7, minval=1, title="Length")
+src = input(close, title="Source")
+out = ema(src, len)
+plot(out, color=#00FFFF, transp=0, linewidth=1, title="EMA(7)")
+
+len1 = input(20, minval=1, title="Length")
+src1 = input(close, title="Source")
+out1 = ema(src1, len1)
+plot(out1, color=#0000FF, transp=0, linewidth=1, title="EMA(20)")
+
+len2 = input(50, minval=1, title="Length")
+src2 = input(close, title="Source")
+out2 = ema(src2, len2)
+plot(out2, color=#FF00FF, transp=0, linewidth=1, title="EMA(50)")
+
+len3 = input(100, minval=1, title="Length")
+src3 = input(close, title="Source")
+out3 = ema(src3, len3)
+plot(out3, color=#008000, transp=0, linewidth=1, title="EMA(100)")
+
+len4 = input(200, minval=1, title="Length")
+src4 = input(close, title="Source")
+out4 = ema(src4, len4)
+plot(out4, color=#00FF00, transp=0, linewidth=1, title="EMA(200)")
