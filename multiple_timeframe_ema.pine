@@ -1,0 +1,114 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © marssmarsshan
+
+//@version=4
+study(title="Multiple Timeframe Exponential Moving Averages", shorttitle="MTEMA", overlay=true)
+
+//HOURLY
+len = input(200, minval=1, title="Length")
+src = input(close, title="Source")
+out = ema(src, len)
+res = input(title="Resolution", type=input.resolution, defval="60")
+s = security(syminfo.tickerid, res, out, gaps=true)
+plot(s, color=#00FFFF, transp=0, linewidth=1, title="60 EMA(200)")
+
+len1 = input(200, minval=1, title="Length")
+src1 = input(close, title="Source")
+out1 = ema(src1, len1)
+res1 = input(title="Resolution", type=input.resolution, defval="240")
+s1 = security(syminfo.tickerid, res1, out1, gaps=true)
+plot(s1, color=#0000FF, transp=0, linewidth=1, title="240 EMA(200)")
+
+len2 = input(200, minval=1, title="Length")
+src2 = input(close, title="Source")
+out2 = ema(src2, len2)
+res2 = input(title="Resolution", type=input.resolution, defval="480")
+s2 = security(syminfo.tickerid, res2, out2, gaps=true)
+plot(s2, color=#FF00FF, transp=0, linewidth=1, title="480 EMA(200)")
+
+len3 = input(200, minval=1, title="Length")
+src3 = input(close, title="Source")
+out3 = ema(src3, len3)
+res3 = input(title="Resolution", type=input.resolution, defval="720")
+s3 = security(syminfo.tickerid, res3, out3, gaps=true)
+plot(s3, color=#008000, transp=0, linewidth=1, title="720 EMA(200)")
+
+//DAILY
+len4 = input(7, minval=1, title="Length")
+src4 = input(close, title="Source")
+out4 = ema(src4, len4)
+res4 = input(title="Resolution", type=input.resolution, defval="1D")
+s4 = security(syminfo.tickerid, res4, out4, gaps=true)
+plot(s4, color=#00FF00, transp=0, linewidth=1, title="1D EMA(7)")
+
+len5 = input(20, minval=1, title="Length")
+src5 = input(close, title="Source")
+out5 = ema(src5, len5)
+res5 = input(title="Resolution", type=input.resolution, defval="1D")
+s5 = security(syminfo.tickerid, res5, out5, gaps=true)
+plot(s5, color=#800000, transp=0, linewidth=1, title="1D EMA(20)")
+
+len6 = input(50, minval=1, title="Length")
+src6 = input(close, title="Source")
+out6 = ema(src6, len6)
+res6 = input(title="Resolution", type=input.resolution, defval="1D")
+s6 = security(syminfo.tickerid, res6, out6, gaps=true)
+plot(s6, color=#000080, transp=0, linewidth=1, title="1D EMA(50)")
+
+len7 = input(200, minval=1, title="Length")
+src7 = input(close, title="Source")
+out7 = ema(src7, len7)
+res7 = input(title="Resolution", type=input.resolution, defval="1D")
+s7 = security(syminfo.tickerid, res7, out7, gaps=true)
+plot(s7, color=#808000, transp=0, linewidth=1, title="1D EMA(200)")
+
+//WEEKLY
+len8 = input(7, minval=1, title="Length")
+src8 = input(close, title="Source")
+out8 = ema(src8, len8)
+res8 = input(title="Resolution", type=input.resolution, defval="1W")
+s8 = security(syminfo.tickerid, res8, out8, gaps=true)
+plot(s8, color=#FF7F00, transp=0, linewidth=1, title="1W EMA(7)")
+
+len9 = input(20, minval=1, title="Length")
+src9 = input(close, title="Source")
+out9 = ema(src9, len9)
+res9 = input(title="Resolution", type=input.resolution, defval="1W")
+s9 = security(syminfo.tickerid, res9, out9, gaps=true)
+plot(s9, color=#800080, transp=0, linewidth=1, title="1W EMA(20)")
+
+len10 = input(50, minval=1, title="Length")
+src10 = input(close, title="Source")
+out10 = ema(src10, len10)
+res10 = input(title="Resolution", type=input.resolution, defval="1W")
+s10 = security(syminfo.tickerid, res10, out10, gaps=true)
+plot(s10, color=#FF0000, transp=0, linewidth=1, title="1W EMA(50)")
+
+len11 = input(200, minval=1, title="Length")
+src11 = input(close, title="Source")
+out11 = ema(src11, len11)
+res11 = input(title="Resolution", type=input.resolution, defval="1W")
+s11 = security(syminfo.tickerid, res11, out11, gaps=true)
+plot(s11, color=#C0C0C0, transp=0, linewidth=1, title="1W EMA(200)")
+
+//MONTHLY
+len12 = input(7, minval=1, title="Length")
+src12 = input(close, title="Source")
+out12 = ema(src12, len12)
+res12 = input(title="Resolution", type=input.resolution, defval="1M")
+s12 = security(syminfo.tickerid, res12, out12, gaps=true)
+plot(s12, color=#008080, transp=0, linewidth=1, title="1M EMA(7)")
+
+len13 = input(20, minval=1, title="Length")
+src13 = input(close, title="Source")
+out13 = ema(src13, len13)
+res13 = input(title="Resolution", type=input.resolution, defval="1M")
+s13 = security(syminfo.tickerid, res13, out13, gaps=true)
+plot(s13, color=#FFFF00, transp=0, linewidth=1, title="1M EMA(20)")
+
+len14 = input(50, minval=1, title="Length")
+src14 = input(close, title="Source")
+out14 = ema(src14, len14)
+res14 = input(title="Resolution", type=input.resolution, defval="1M")
+s14 = security(syminfo.tickerid, res14, out14, gaps=true)
+plot(s14, color=#FFFFFF, transp=0, linewidth=1, title="1M EMA(200)")
