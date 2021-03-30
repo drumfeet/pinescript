@@ -1,0 +1,97 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © KingThies_
+//<PINE> <SOURCE>
+//@version=4
+// modified: © marssmarsshan
+study(title="RSI Divergence", format=format.price, resolution="")
+
+// Inputs || --------------------------------------------------------------------------------
+len = input(14, minval=1, title="Length")
+src = input(title="RSI Source", defval=close)
+lbR = input(2, minval=2, title="Right") //Default 5
+lbL = input(2, minval=2, title="Left") //Default 5
+rangeUpper = 60
+rangeLower = 5
+plotBull = input(title="Plot Bullish Divergence", defval=true) //true
+plotHiddenBull = input(title="Plot Hidden Bullish Divergence", defval=false)
+plotBear = input(title="Plot Bearish Divergence", defval=true) //true
+plotHiddenBear = input(title="Plot Hidden Bearish Divergence", defval=false)
+
+bearColor = color.red
+bullColor = color.green
+hiddenBullColor = color.new(color.green, 0)
+hiddenBearColor = color.new(color.red, 0)
+textColor = color.white
+noneColor = color.new(color.white, 100)
+
+osc = rsi(src, len)
+
+plot(osc, title="RSI", linewidth=1, color=color.gray,transp=20)
+
+plFound = na(pivotlow(osc, lbL, lbR)) ? false : true
+phFound = na(pivothigh(osc, lbL, lbR)) ? false : true
+
+_inRange(cond) =>
+    bars = barssince(cond == true)
+    rangeLower <= bars and bars <= rangeUpper
+
+// RSI Trend || --------------------------------------------------------------------------------
+oscHL = osc[lbR] > valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+oscLL = osc[lbR] < valuewhen(plFound, osc[lbR], 1) and _inRange(plFound[1])
+oscHH = osc[lbR] > valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+oscLH = osc[lbR] < valuewhen(phFound, osc[lbR], 1) and _inRange(phFound[1])
+
+// Price Trend || ------------------------------------------------------------------------------
+priceLL = low[lbR] < valuewhen(plFound, low[lbR], 1)
+priceHL = low[lbR] > valuewhen(plFound, low[lbR], 1)
+priceHH = high[lbR] > valuewhen(phFound, high[lbR], 1)
+priceLH = high[lbR] < valuewhen(phFound, high[lbR], 1)
+
+// Divergence Defined || -----------------------------------------------------------------------
+bullCond = plotBull and priceLL and oscHL and plFound 
+hiddenBullCond = plotHiddenBull and priceHL and oscLL and plFound
+bearCond = plotBear and priceHH and oscLH and phFound 
+hiddenBearCond = plotHiddenBear and priceLH and oscHH and phFound
+
+// Plots || -------------------------------------------------------------------------------------
+plot(
+	 plFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bullish",
+	 linewidth=1,
+	 color=(bullCond ? bullColor : noneColor),
+	 transp=0
+	 )
+
+plot(
+	 plFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bullish",
+	 linewidth=1,
+	 color=(hiddenBullCond ? hiddenBullColor : noneColor),
+	 transp=0
+	 )
+	 
+plot(
+	 phFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Regular Bearish",
+	 linewidth=1,
+	 color=(bearCond ? bearColor : noneColor),
+	 transp=0
+	 )
+
+plot(
+	 phFound ? osc[lbR] : na,
+	 offset=-lbR,
+	 title="Hidden Bearish",
+	 linewidth=1,
+	 color=(hiddenBearCond ? hiddenBearColor : noneColor),
+	 transp=0
+	 )
+	 
+band2 = hline(50, "Uptrend Band", color=color.green, linestyle=hline.style_dashed, linewidth=1)
+band1 = hline(70, "Upper Band", color=#C0C0C0)
+band0 = hline(30, "Lower Band", color=#C0C0C0)
+fill(band1, band0, color=#9915FF, transp=90, title="Background")
+//</PINE> </SOURCE>
