@@ -1,0 +1,22 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © marssmarsshan
+//@version=4
+study(title="Ethan Overbought Oversold Signal", shorttitle="Overbought Oversold Signal", format=format.price, precision=2, resolution="", overlay=true)
+len = input(14, minval=1, title="Length")
+src = input(close, "Source", type = input.source)
+up = rma(max(change(src), 0), len)
+down = rma(-min(change(src), 0), len)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+
+// Get user input
+rsiOverbought = input(title="RSI Overbought Level", type=input.integer, defval=80)
+rsiOversold = input(title="RSI Oversold Level", type=input.integer, defval=20)
+
+// Get RSI value
+rsiValue = rsi(src, len)
+isRsiOB = rsiValue >= rsiOverbought
+isRsiOS = rsiValue <= rsiOversold
+
+// Plot signals to chart
+plotshape(isRsiOB, title="Overbought", location=location.abovebar, color=color.red, transp=0, style=shape.triangledown, text="OB")
+plotshape(isRsiOS, title="Oversold", location=location.belowbar, color=color.green, transp=0, style=shape.triangleup, text="OS")
