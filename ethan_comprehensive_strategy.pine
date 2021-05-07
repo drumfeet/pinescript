@@ -1,0 +1,162 @@
+// Script provided by: Bassperience Studios#6233 Discord Server (Squiggly Lion)
+// Modified by: marssmarsshan
+
+//@version=4
+study(title="Ethan Comprehensive Strategy", shorttitle="ECS", overlay=true)
+
+//Settings
+length_input = input(14, "Length", input.integer, minval=2)
+source_input = input(close, "Source", input.source)
+
+rsi_input1 = input(25.0, "RSI Input 1", input.float)
+show_rsi_input1 = input(false, "Show Price Level for RSI Input 1", input.bool)
+rsi_input2 = input(20.0, "RSI Input 2", input.float)
+show_rsi_input2 = input(false, "Show Price Level for RSI Input 2", input.bool)
+rsi_input3 = input(14.0, "RSI Input 3", input.float)
+show_rsi_input3 = input(false, "Show Price Level for RSI Input 3", input.bool)
+show_text_label = input(false, "Show Text Label on Drawn Lines",  input.bool)
+price_input = input(49000, "Price Input", input.float)
+decimals_input = input(1, "Decimals",  input.integer, minval=0, maxval = 10)
+
+show_my_information_panel = input(true, "Show My Information Panel",  input.bool)
+invisible_background = input(true, "Invisible Background", input.bool)
+//show_percentage_drop_from_ath = input(true, "Show % drop from ATH", input.bool)
+
+draw_price_drop_20_percent_line = input(false, "Draw Price Drop 20% Horizontal Line",  input.bool)
+draw_price_drop_30_percent_line = input(false, "Draw Price Drop 30% Horizontal Line",  input.bool)
+draw_price_drop_40_percent_line = input(false, "Draw Price Drop 40% Horizontal Line",  input.bool)
+draw_price_drop_80_percent_line = input(false, "Draw Price Drop 80% Horizontal Line",  input.bool)
+
+draw_rsi_90_line = input(false, "Draw RSI 90 Horizontal Line",  input.bool)
+draw_rsi_70_line = input(false, "Draw RSI 70 Horizontal Line",  input.bool)
+draw_rsi_50_line = input(false, "Draw RSI 50 Horizontal Line",  input.bool)
+draw_rsi_30_line = input(false, "Draw RSI 30 Horizontal Line",  input.bool)
+
+show_buy_signal = input(false, "Show Buy Signal (Daily Chart)", input.bool)
+rsi_buy_level_channel_high = input(title="RSI Buy Level Channel (High)", type=input.integer, defval=50)
+rsi_buy_level_channel_low = input(title="RSI Buy Level Channel (Low)", type=input.integer, defval=43)
+percentage_drop = input(title="Percentage Drop from ATH", type=input.integer, defval=20)
+
+//RSI
+rsi = rsi(source_input, length_input)
+
+// ALL-TIME HIGH
+var highest = 0.0
+var timeframe = ""
+if (high >= highest )
+    highest := high
+	
+NL          = "\n"
+SepLine     = "----------------------------------------"
+
+//Style
+labelstyle = label.style_label_down
+label_background_color = invisible_background ? color.new(#000000, 100) : color.new(#000000, 45)
+
+//Reverse RSI Functions
+ReverseFunction(Level) =>
+    x1 = (length_input - 1) * (rma(max(nz(source_input[1],source_input) - source_input, 0), length_input) * Level / (100 - Level) - rma(max(source_input - nz(source_input[1],source_input), 0), length_input))
+    iff(x1 >= 0, source_input + x1, source_input + x1 * (100 - Level) / Level)
+
+//Reverse RSI Price Level Calculations
+reverse_rsi_input1 = ReverseFunction(rsi_input1)
+reverse_rsi_input2 = ReverseFunction(rsi_input2)
+reverse_rsi_input3 = ReverseFunction(rsi_input3)
+
+//Reverse Reverse RSI
+ReverseReverseFunction(input)=>
+    alpha = 1 / length_input
+    up1 = rma(max(change(source_input),0),length_input) 
+    down1 = rma(-min(change(source_input), 0), length_input)
+    up = alpha * max(input - source_input[1], 0) + (1 - alpha)*nz(up1[1])
+    down = alpha * -min(input - source_input[1], 0) + (1 - alpha)*nz(down1[1])
+    rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+
+rrrsi = ReverseReverseFunction(price_input)
+
+//RoundFunction Function
+RoundFunction(source_input, digits) => 
+    p = pow(10,digits)
+    round(abs(source_input)*p)/p*sign(source_input)
+
+//Offset 
+xpFunction(xp_offset) => 
+    time + round(change(time) * xp_offset)
+
+CreateLabel(p_offset, price, labeltext, p_style, labelcolor) =>
+    label PnL_Label = na
+    PnL_Label := label.new(xpFunction(p_offset), price, text = labeltext, color=labelcolor, textcolor=color.white, style = p_style, yloc=yloc.price, xloc=xloc.bar_time,size=size.large)
+    label.delete(PnL_Label[1])
+
+if(show_rsi_input1 and show_text_label)
+    CreateLabel(1, RoundFunction(reverse_rsi_input1,decimals_input), "RSI " + tostring(rsi_input1) + " = $" + tostring(RoundFunction(reverse_rsi_input1,decimals_input))  ,labelstyle,label_background_color)
+
+if(show_rsi_input2 and show_text_label)
+    CreateLabel(1, RoundFunction(reverse_rsi_input2,decimals_input), "RSI " + tostring(rsi_input2) + " = $" + tostring(RoundFunction(reverse_rsi_input2,decimals_input))  ,labelstyle,label_background_color)
+
+if(show_rsi_input3 and show_text_label)
+    CreateLabel(1, RoundFunction(reverse_rsi_input3,decimals_input), "RSI " + tostring(rsi_input3) + " = $" + tostring(RoundFunction(reverse_rsi_input3,decimals_input))  ,labelstyle,label_background_color)
+    
+// Draw Price Level
+plot(show_rsi_input1 ? RoundFunction(reverse_rsi_input1,decimals_input) : na, "RSI Input 1", color = color.lime, trackprice = true ,show_last = 1)
+plot(show_rsi_input2 ? RoundFunction(reverse_rsi_input2,decimals_input) : na, "RSI Input 2", color = color.lime, trackprice = true ,show_last = 1)
+plot(show_rsi_input3 ? RoundFunction(reverse_rsi_input3,decimals_input) : na, "RSI Input 3", color = color.lime, trackprice = true ,show_last = 1)
+
+// Buy Signal Formula
+percentage = ( (highest - lowest(low,1)) / lowest(low,1) ) * 100
+buy_indicator = (rsi <= rsi_buy_level_channel_high and rsi >= rsi_buy_level_channel_low and percentage >= percentage_drop) 
+
+price_drop_from_ath = ((highest - close) / highest) * 100
+price_drop_20_percent = highest * 0.8
+price_drop_30_percent = highest * 0.7
+price_drop_40_percent = highest * 0.6
+price_drop_80_percent = highest * 0.2
+
+rsi90_price = ReverseFunction(90)
+rsi70_price = ReverseFunction(70)
+rsi50_price = ReverseFunction(50)
+rsi30_price = ReverseFunction(30)
+
+InfoBox = tostring(RoundFunction(price_drop_from_ath,1)) + "% drop from ATH" + NL + "20% Drop from ATH = $" + tostring(price_drop_20_percent) + NL + "30% Drop from ATH = $" + tostring(price_drop_30_percent) + NL + "40% Drop from ATH = $" + tostring(price_drop_40_percent) + NL + "80% Drop from ATH = $" + tostring(price_drop_80_percent) + NL + NL + "RSI 90 = $" + tostring(RoundFunction(rsi90_price,decimals_input)) + NL + "RSI 70 = $" + tostring(RoundFunction(rsi70_price,decimals_input)) + NL + "RSI 50 = $" + tostring(RoundFunction(rsi50_price,decimals_input)) + NL + "RSI 30 = $" + tostring(RoundFunction(rsi30_price,decimals_input)) + NL + NL + "Price Input $" + tostring(price_input) + " = RSI " + tostring(RoundFunction(rrrsi,decimals_input)) + NL + "RSI " + tostring(RoundFunction(rsi_input1, decimals_input)) + " = " + "Price $" + tostring(RoundFunction(reverse_rsi_input1, decimals_input)) + NL + "RSI " + tostring(RoundFunction(rsi_input2, decimals_input)) + " = " + "Price $" + tostring(RoundFunction(reverse_rsi_input2, decimals_input)) + NL + "RSI " + tostring(RoundFunction(rsi_input3, decimals_input)) + " = " + "Price $" + tostring(RoundFunction(reverse_rsi_input3, decimals_input))
+
+if(show_my_information_panel)
+	label l_infobox = label.new(bar_index, RoundFunction(close,decimals_input), text = InfoBox, color=label_background_color, style=label.style_label_left,textcolor=color.white, textalign=text.align_left)
+	label.delete(l_infobox[1])
+
+// Plot to chart
+plot(draw_price_drop_20_percent_line ? RoundFunction(price_drop_20_percent,decimals_input) : na, "Price Drop 20% Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_price_drop_30_percent_line ? RoundFunction(price_drop_30_percent,decimals_input) : na, "Price Drop 30% Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_price_drop_40_percent_line ? RoundFunction(price_drop_40_percent,decimals_input) : na, "Price Drop 40% Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_price_drop_80_percent_line ? RoundFunction(price_drop_80_percent,decimals_input) : na, "Price Drop 80% Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+
+plot(draw_rsi_90_line ? RoundFunction(rsi90_price,decimals_input) : na, "RSI 90 Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_rsi_70_line ? RoundFunction(rsi70_price,decimals_input) : na, "RSI 70 Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_rsi_50_line ? RoundFunction(rsi50_price,decimals_input) : na, "RSI 50 Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+plot(draw_rsi_30_line ? RoundFunction(rsi30_price,decimals_input) : na, "RSI 30 Horizontal Line", color = color.lime, trackprice = true ,show_last = 1)
+
+plotshape(show_buy_signal ? buy_indicator : na, location=location.belowbar, color=color.green, style=shape.triangleup, text="BUY" )
+
+// RSI 1H 4H Strategy
+rsi_strategy_input = rsi(source_input, length_input)
+show_rsi_trigger_lines = input(false, "Show RSI Trigger Lines", input.bool)
+timeframe_input1 = input(title="RSI Timeframe 1", type=input.resolution, defval="60")
+timeframe_input2 = input(title="RSI Timeframe 2", type=input.resolution, defval="240")
+rsi_trigger_level_input = input(30, "RSI Trigger Level <=", input.integer, minval=1)
+rsi_timeframe1 = security(syminfo.tickerid, timeframe_input1, rsi_strategy_input, gaps=true)
+rsi_timeframe2 = security(syminfo.tickerid, timeframe_input2, rsi_strategy_input, gaps=true)
+bgcolor(rsi_timeframe1 <= rsi_trigger_level_input and rsi_timeframe2 <= rsi_trigger_level_input and show_rsi_trigger_lines ? color.purple : na, transp=60)
+
+//#############Alternative way to draw a vertical line - START
+
+//LineLengthMult = 8
+//LineLength = atr(100) * LineLengthMult
+
+//drawVerticalLine(offset) =>
+    //line.new(bar_index[offset], low-LineLength, bar_index[offset], high+LineLength, color=color.new(color.yellow, 70), width=3)
+
+//if rsi_timeframe1 <= 30 and rsi_timeframe2 <= 30
+    //drawVerticalLine(0)
+	
+//#############Alternative way to draw a vertical line - END
+
+//TODO: MACD Cross on weekly chart
