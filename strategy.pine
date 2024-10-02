@@ -1,61 +1,56 @@
 //@version=5
-strategy("RSI Buy/Sell Strategy with Fees", overlay=true, margin_long=50, default_qty_type=strategy.cash, default_qty_value=700, initial_capital=5000, commission_type=strategy.commission.percent, commission_value=0.0750)
+strategy("RSI Long Strategy", overlay=true, margin_long=50, default_qty_type=strategy.cash, default_qty_value=1000, initial_capital=5000, commission_type=strategy.commission.percent, commission_value=0.0750)
 
 // RSI Settings
 length_input = input.int(14, "Length", minval=2, group="RSI Settings")
 source_input = input.source(close, "Source", group="RSI Settings")
 rsi_strategy_input = ta.rsi(source_input, length_input)
 
-startDateInput = input.time(timestamp("2024-01-01 00:00"), title="Start Date")
-endDateInput = input.time(timestamp("2024-12-31 23:45"), title="End Date")
+// Trading Date Range
+startDateInput = input.time(timestamp("2024-01-01 00:00"), title="Start Date", group="Trading Date Range")
+endDateInput = input.time(timestamp("2024-12-31 23:45"), title="End Date", group="Trading Date Range")
 inDateRange = (time >= startDateInput and time <= endDateInput)
 
 // ---- RSI Buy Strategy ----
 show_rsi_buy_trigger_lines = input.bool(false, "Show RSI Buy Lines", group="RSI Buy Strategy", tooltip="")
 rsi_buy_timeframe_input1 = input.timeframe(defval="60", title="RSI Buy Timeframe 1", group="RSI Buy Strategy")
 rsi_buy_timeframe_input2 = input.timeframe(defval="240", title="RSI Buy Timeframe 2", group="RSI Buy Strategy")
-rsi_buy_range_input1 = input.int(48, "RSI Buy Level >=", minval=1, group="RSI Buy Strategy")  // Buy RSI Level Threshold
+rsi_buy_range_input1 = input.int(48, "RSI Buy Level >=", minval=1, group="RSI Buy Strategy")  // RSI Buy Level Threshold
 
 // Get RSI values for buy timeframes
-rsi_buy_timeframe1 = request.security(syminfo.tickerid, rsi_buy_timeframe_input1, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
-rsi_buy_timeframe2 = request.security(syminfo.tickerid, rsi_buy_timeframe_input2, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
+rsi_level_buy_timeframe1 = request.security(syminfo.tickerid, rsi_buy_timeframe_input1, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
+rsi_level_buy_timeframe2 = request.security(syminfo.tickerid, rsi_buy_timeframe_input2, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
 
 // Define Buy Condition: Both RSI values should be greater than or equal to the buy threshold
-buyCondition = (rsi_buy_timeframe1 >= rsi_buy_range_input1) and (rsi_buy_timeframe2 >= rsi_buy_range_input1)
+buyCondition = (rsi_level_buy_timeframe1 >= rsi_buy_range_input1) and (rsi_level_buy_timeframe2 >= rsi_buy_range_input1)
 bgcolor(buyCondition and show_rsi_buy_trigger_lines ? color.new(color.yellow, 60) : na)  // Background color for buy signal
 
 // ---- RSI Sell Strategy ----
 show_rsi_sell_trigger_lines = input.bool(false, "Show RSI Sell Lines", group="RSI Sell Strategy", tooltip="")
 rsi_sell_timeframe_input1 = input.timeframe(defval="15", title="RSI Sell Timeframe 1", group="RSI Sell Strategy")
 rsi_sell_timeframe_input2 = input.timeframe(defval="30", title="RSI Sell Timeframe 2", group="RSI Sell Strategy")
-rsi_sell_range_input1 = input.int(67, "RSI Sell Level >=", minval=1, group="RSI Sell Strategy")  // Sell RSI Level Threshold
+rsi_sell_range_input1 = input.int(67, "RSI Sell Level >=", minval=1, group="RSI Sell Strategy")  // RSI Sell Level Threshold
 
 // Get RSI values for sell timeframes
-rsi_sell_timeframe1 = request.security(syminfo.tickerid, rsi_sell_timeframe_input1, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
-rsi_sell_timeframe2 = request.security(syminfo.tickerid, rsi_sell_timeframe_input2, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
+rsi_level_sell_timeframe1 = request.security(syminfo.tickerid, rsi_sell_timeframe_input1, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
+rsi_level_sell_timeframe2 = request.security(syminfo.tickerid, rsi_sell_timeframe_input2, ta.rsi(source_input, length_input), gaps=barmerge.gaps_on)
 
 // Define Sell Condition: Both RSI values should be greater than or equal to the sell threshold
-// sellCondition = (rsi_sell_timeframe1 >= rsi_sell_range_input1) and (rsi_sell_timeframe2 >= rsi_sell_range_input1)
-sellCondition = (rsi_sell_timeframe1 >= rsi_sell_range_input1) and (rsi_sell_timeframe2 >= rsi_sell_range_input1) and (close > strategy.position_avg_price)
+sellCondition = (rsi_level_sell_timeframe1 >= rsi_sell_range_input1) and (rsi_level_sell_timeframe2 >= rsi_sell_range_input1) and (close > strategy.position_avg_price)
 bgcolor(sellCondition and show_rsi_sell_trigger_lines ? color.new(color.red, 60) : na)  // Background color for sell signal
 
-// Plot a line for the average entry price for visualization
-// plot(strategy.position_avg_price, title="Entry Price", color=color.blue, linewidth=1)
+// ---- ATR Sell Strategy ----
+atr_sell_timeframe_input = input.timeframe("D", title="ATR Timeframe", group="ATR Sell Strategy")
+atr_sell_value = request.security(syminfo.tickerid, atr_sell_timeframe_input, ta.atr(length_input))
+atr_take_profit_level = strategy.position_avg_price + atr_sell_value
 
-// Define stop loss level using current price + 4-hour ATR
-atr_timeframe = input.timeframe("240", title="ATR Timeframe", group="ATR Stop Loss Settings")
-atr_4hr = request.security(syminfo.tickerid, atr_timeframe, ta.atr(14))
-// stop_loss_level = close - atr_4hr
-stop_loss_level = strategy.position_avg_price - atr_4hr
+// ---- ATR Stop Loss ----
+atr_timeframe = input.timeframe("240", title="ATR Timeframe", group="ATR Stop Loss")
+atr_stop_loss = request.security(syminfo.tickerid, atr_timeframe, ta.atr(length_input))
+stop_loss_level = strategy.position_avg_price - atr_stop_loss
 
-// Plot the stop loss level as a red line
-// plot(stop_loss_level, title="Stop Loss Level", color=color.red, linewidth=2, style=plot.style_line)
-
-// ATR Sell Settings
-atr_sell_timeframe_input = input.timeframe("D", title="ATR Timeframe", group="ATR Sell Settings")
-atr_sell_timeframe = request.security(syminfo.tickerid, atr_sell_timeframe_input, ta.atr(14))
-// take_profit_level = close + atr_sell_timeframe
-take_profit_level = strategy.position_avg_price + atr_sell_timeframe
+// Declare rsi_take_profit_level as a `float` variable
+var float rsi_take_profit_level = na
 
 if (inDateRange)
     // 1. Enter a long position when buy condition is met, using $700 for each entry and 2x leverage
@@ -65,5 +60,18 @@ if (inDateRange)
     // 2. Exit the long position using the sell condition or the stop loss
     if (sellCondition)
         strategy.exit("RSI Long Exit", from_entry="RSI Long", limit=close)
+        rsi_take_profit_level := close  // Set the RSI take profit level to the close price
     else
-        strategy.exit("RSI Long Exit ATR", from_entry="RSI Long", limit=take_profit_level, stop=stop_loss_level)
+        strategy.exit("RSI Long Exit ATR", from_entry="RSI Long", limit=atr_take_profit_level, stop=stop_loss_level)
+
+// Plot a line for the average entry price for visualization
+plot(strategy.position_avg_price, title="Entry Price", color=color.gray, linewidth=1)
+
+// Plot the stop loss level as a red line
+plot(stop_loss_level, title="Stop Loss", color=color.red, linewidth=1)
+
+// Plot the ATR-based take profit level as a yellow line
+plot(atr_take_profit_level, title="ATR Take Profit", color=color.yellow, linewidth=1)
+
+// Conditionally plot the RSI take profit level, ensuring it's only plotted if it has been set
+plot(na(rsi_take_profit_level) ? na : rsi_take_profit_level, title="RSI Take Profit", color=color.green, linewidth=1)
