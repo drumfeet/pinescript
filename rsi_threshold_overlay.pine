@@ -1,0 +1,210 @@
+//@version=5
+indicator("RSI Threshold Overlay", overlay=true)
+
+//Settings
+length_input = input.int(14, "Length", minval=2, group = "Settings")
+source_input = input.source(close, "Source", group = "Settings")
+decimals_input = input.int(1, "Decimals", minval=0, maxval=10, group = "Settings")
+
+draw_rsi_90_line = input.bool(false, "Draw RSI 90 Horizontal Line", group = "RSI Level")
+draw_rsi_70_line = input.bool(false, "Draw RSI 70 Horizontal Line", group = "RSI Level")
+draw_rsi_50_line = input.bool(false, "Draw RSI 50 Horizontal Line", group = "RSI Level")
+draw_rsi_30_line = input.bool(false, "Draw RSI 30 Horizontal Line", group = "RSI Level")
+
+show_text_label = input.bool(false, "Show Text Label on RSI Drawn Lines", group = "Custom RSI Level")
+rsi_input1 = input.float(25.0, "RSI Input 1", group = "Custom RSI Level")
+show_rsi_input1 = input.bool(false, "Show Price Level for RSI Input 1", group = "Custom RSI Level")
+rsi_input2 = input.float(20.0, "RSI Input 2", group = "Custom RSI Level")
+show_rsi_input2 = input.bool(false, "Show Price Level for RSI Input 2", group = "Custom RSI Level")
+rsi_input3 = input.float(14.0, "RSI Input 3", group = "Custom RSI Level")
+show_rsi_input3 = input.bool(false, "Show Price Level for RSI Input 3", group = "Custom RSI Level")
+
+price_input = input.float(49000, "Compute RSI from Price", group = "RSI Level Info")
+show_my_information_panel = input.bool(false, "Show My Information Panel", group = "RSI Level Info")
+invisible_background = input.bool(true, "Invisible Background", group = "RSI Level Info")
+
+draw_price_drop_20_percent_line = input.bool(false, "Draw Price Drop 20% from ATH", group = "Percentage Drop")
+draw_price_drop_30_percent_line = input.bool(false, "Draw Price Drop 30% from ATH", group = "Percentage Drop")
+draw_price_drop_40_percent_line = input.bool(false, "Draw Price Drop 40% from ATH", group = "Percentage Drop")
+draw_price_drop_80_percent_line = input.bool(false, "Draw Price Drop 80% from ATH", group = "Percentage Drop")
+
+show_buy_signal = input.bool(false, "Show Buy Signal Label", group = "RSI 1D Strategy-2021", tooltip = "show BUY signal if RSI Level is within the High and Low channel and price drop from ATH is less than or equal to input.")
+rsi_buy_level_channel_high = input.int(50, "RSI Buy Level Channel (High) <=", group = "RSI 1D Strategy-2021")
+rsi_buy_level_channel_low = input.int(43, "RSI Buy Level Channel (Low) >=", group = "RSI 1D Strategy-2021")
+percentage_drop = input.int(20, "Percentage Drop from ATH", group = "RSI 1D Strategy-2021")
+
+//RSI
+rsi = ta.rsi(source_input, length_input)
+
+// ALL-TIME HIGH
+var float highest = 0.0
+if (high >= highest)
+    highest := high
+
+NL = "\n"
+SepLine = "----------------------------------------"
+
+//Style
+labelstyle = label.style_label_down
+label_background_color = invisible_background ? color.new(#000000, 100) : color.new(color.red, 45)
+
+//Reverse RSI Functions
+ReverseFunction(Level) =>
+    x1 = (length_input - 1) * (ta.rma(math.max(nz(source_input[1], source_input) - source_input, 0), length_input) * Level / (100 - Level) - ta.rma(math.max(source_input - nz(source_input[1], source_input), 0), length_input))
+    x1 >= 0 ? source_input + x1 : source_input + x1 * (100 - Level) / Level
+
+//Reverse RSI Price Level Calculations
+reverse_rsi_input1 = ReverseFunction(rsi_input1)
+reverse_rsi_input2 = ReverseFunction(rsi_input2)
+reverse_rsi_input3 = ReverseFunction(rsi_input3)
+
+//Reverse Reverse RSI
+ReverseReverseFunction(input) =>
+    alpha = 1 / length_input
+    up1 = ta.rma(math.max(ta.change(source_input), 0), length_input)
+    down1 = ta.rma(-math.min(ta.change(source_input), 0), length_input)
+    up = alpha * math.max(input - source_input[1], 0) + (1 - alpha) * nz(up1[1])
+    down = alpha * -math.min(input - source_input[1], 0) + (1 - alpha) * nz(down1[1])
+    down == 0 ? 100 : up == 0 ? 0 : 100 - (100 / (1 + up / down))
+
+rrrsi = ReverseReverseFunction(price_input)
+
+//RoundFunction Function
+RoundFunction(source_input, digits) =>
+    p = math.pow(10, digits)
+    math.round(math.abs(source_input) * p) / p * math.sign(source_input)
+
+//Offset
+xpFunction(xp_offset) =>
+    time + math.round(ta.change(time) * xp_offset)
+
+CreateLabel(p_offset, price, labeltext, p_style, labelcolor) =>
+    label PnL_Label = na
+    PnL_Label := label.new(xpFunction(p_offset), price, text=labeltext, color=labelcolor, textcolor=color.white, style=p_style, yloc=yloc.price, xloc=xloc.bar_time, size=size.large)
+    label.delete(PnL_Label[1])
+
+if show_rsi_input1 and show_text_label
+    CreateLabel(1, RoundFunction(reverse_rsi_input1, decimals_input), "RSI " + str.tostring(rsi_input1) + " = $" + str.tostring(RoundFunction(reverse_rsi_input1, decimals_input)), labelstyle, label_background_color)
+
+if show_rsi_input2 and show_text_label
+    CreateLabel(1, RoundFunction(reverse_rsi_input2, decimals_input), "RSI " + str.tostring(rsi_input2) + " = $" + str.tostring(RoundFunction(reverse_rsi_input2, decimals_input)), labelstyle, label_background_color)
+
+if show_rsi_input3 and show_text_label
+    CreateLabel(1, RoundFunction(reverse_rsi_input3, decimals_input), "RSI " + str.tostring(rsi_input3) + " = $" + str.tostring(RoundFunction(reverse_rsi_input3, decimals_input)), labelstyle, label_background_color)
+
+// Draw Price Level
+plot(show_rsi_input1 ? RoundFunction(reverse_rsi_input1, decimals_input) : na, "RSI Input 1", color=color.lime, trackprice=true, show_last=1)
+plot(show_rsi_input2 ? RoundFunction(reverse_rsi_input2, decimals_input) : na, "RSI Input 2", color=color.lime, trackprice=true, show_last=1)
+plot(show_rsi_input3 ? RoundFunction(reverse_rsi_input3, decimals_input) : na, "RSI Input 3", color=color.lime, trackprice=true, show_last=1)
+
+// Buy Signal Formula
+percentage = ((highest - ta.lowest(low, 1)) / ta.lowest(low, 1)) * 100
+buy_indicator = (rsi <= rsi_buy_level_channel_high and rsi >= rsi_buy_level_channel_low and percentage >= percentage_drop)
+
+price_drop_from_ath = ((highest - close) / highest) * 100
+price_drop_20_percent = highest * 0.8
+price_drop_30_percent = highest * 0.7
+price_drop_40_percent = highest * 0.6
+price_drop_80_percent = highest * 0.2
+
+rsi90_price = ReverseFunction(90)
+rsi70_price = ReverseFunction(70)
+rsi50_price = ReverseFunction(50)
+rsi30_price = ReverseFunction(30)
+
+InfoBox = str.tostring(RoundFunction(price_drop_from_ath, 1)) + "% drop from ATH" + NL +
+          "20% Drop from ATH = $" + str.tostring(price_drop_20_percent) + NL +
+          "30% Drop from ATH = $" + str.tostring(price_drop_30_percent) + NL +
+          "40% Drop from ATH = $" + str.tostring(price_drop_40_percent) + NL +
+          "80% Drop from ATH = $" + str.tostring(price_drop_80_percent) + NL + NL +
+          "RSI 90 = $" + str.tostring(RoundFunction(rsi90_price, decimals_input)) + NL +
+          "RSI 70 = $" + str.tostring(RoundFunction(rsi70_price, decimals_input)) + NL +
+          "RSI 50 = $" + str.tostring(RoundFunction(rsi50_price, decimals_input)) + NL +
+          "RSI 30 = $" + str.tostring(RoundFunction(rsi30_price, decimals_input)) + NL + NL +
+          "Price Input $" + str.tostring(price_input) + " = RSI " + str.tostring(RoundFunction(rrrsi, decimals_input)) + NL +
+          "RSI " + str.tostring(RoundFunction(rsi_input1, decimals_input)) + " = " + "Price $" + str.tostring(RoundFunction(reverse_rsi_input1, decimals_input)) + NL +
+          "RSI " + str.tostring(RoundFunction(rsi_input2, decimals_input)) + " = " + "Price $" + str.tostring(RoundFunction(reverse_rsi_input2, decimals_input)) + NL +
+          "RSI " + str.tostring(RoundFunction(rsi_input3, decimals_input)) + " = " + "Price $" + str.tostring(RoundFunction(reverse_rsi_input3, decimals_input))
+
+if show_my_information_panel
+    label l_infobox = label.new(bar_index, RoundFunction(close, decimals_input), text=InfoBox, color=label_background_color, style=label.style_label_left, textcolor=color.white, textalign=text.align_left)
+    label.delete(l_infobox[1])
+
+// Plot to chart
+plot(draw_price_drop_20_percent_line ? RoundFunction(price_drop_20_percent, decimals_input) : na, "Price Drop 20% Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_price_drop_30_percent_line ? RoundFunction(price_drop_30_percent, decimals_input) : na, "Price Drop 30% Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_price_drop_40_percent_line ? RoundFunction(price_drop_40_percent, decimals_input) : na, "Price Drop 40% Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_price_drop_80_percent_line ? RoundFunction(price_drop_80_percent, decimals_input) : na, "Price Drop 80% Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+
+plot(draw_rsi_90_line ? RoundFunction(rsi90_price, decimals_input) : na, "RSI 90 Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_rsi_70_line ? RoundFunction(rsi70_price, decimals_input) : na, "RSI 70 Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_rsi_50_line ? RoundFunction(rsi50_price, decimals_input) : na, "RSI 50 Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+plot(draw_rsi_30_line ? RoundFunction(rsi30_price, decimals_input) : na, "RSI 30 Horizontal Line", color=color.lime, trackprice=true, show_last=1)
+
+plotshape(show_buy_signal ? buy_indicator : na, location=location.belowbar, color=color.green, style=shape.triangleup, text="BUY")
+
+rsi_strategy_input = ta.rsi(source_input, length_input)
+
+rsi_threshold_timeframe_input1 = input.timeframe(defval="D", title="Timeframe", group="RSI Threshold")
+rsi_threshold_range_input1 = input.int(50, "RSI Threshold >=", minval=1, group = "RSI Threshold")
+show_rsi_threshold_trigger_lines1 = input.bool(false, "Visible", group = "RSI Threshold")
+rsi_threshold_timeframe1 = request.security(syminfo.tickerid, rsi_threshold_timeframe_input1, rsi_strategy_input, gaps=barmerge.gaps_off)
+bgcolor(rsi_threshold_timeframe1 >= rsi_threshold_range_input1 and show_rsi_threshold_trigger_lines1 ? color.new(color.orange, 55) : na,  title="RSI Threshold 1")
+
+rsi_threshold_timeframe_input2 = input.timeframe(defval="W", title="Timeframe", group="RSI Threshold")
+rsi_threshold_range_input2 = input.int(50, "RSI Threshold >=", minval=1, group = "RSI Threshold")
+show_rsi_threshold_trigger_lines2 = input.bool(false, "Visible", group = "RSI Threshold", tooltip = "")
+rsi_threshold_timeframe2 = request.security(syminfo.tickerid, rsi_threshold_timeframe_input2, rsi_strategy_input, gaps=barmerge.gaps_off)
+bgcolor(rsi_threshold_timeframe2 >= rsi_threshold_range_input2 and show_rsi_threshold_trigger_lines2 ? color.new(color.orange, 55) : na, title="RSI Threshold 2")
+
+rsi_threshold_timeframe_input3 = input.timeframe(defval="60", title="Timeframe", group="RSI Threshold")
+rsi_threshold_range_input3 = input.int(30, "RSI Threshold <=", minval=1, group = "RSI Threshold")
+show_rsi_threshold_trigger_lines3 = input.bool(false, "Visible", group = "RSI Threshold", tooltip = "")
+rsi_threshold_timeframe3 = request.security(syminfo.tickerid, rsi_threshold_timeframe_input3, rsi_strategy_input, gaps=barmerge.gaps_off)
+bgcolor(rsi_threshold_timeframe3 <= rsi_threshold_range_input3 and show_rsi_threshold_trigger_lines3 ? color.new(color.orange, 55) : na, title="RSI Threshold 3")
+
+rsi_threshold_timeframe_input4 = input.timeframe(defval="240", title="Timeframe", group="RSI Threshold")
+rsi_threshold_range_input4 = input.int(30, "RSI Threshold <=", minval=1, group = "RSI Threshold")
+show_rsi_threshold_trigger_lines4 = input.bool(false, "Visible", group = "RSI Threshold", tooltip = "")
+rsi_threshold_timeframe4 = request.security(syminfo.tickerid, rsi_threshold_timeframe_input4, rsi_strategy_input, gaps=barmerge.gaps_off)
+bgcolor(rsi_threshold_timeframe4 <= rsi_threshold_range_input4 and show_rsi_threshold_trigger_lines4 ? color.new(color.orange, 55) : na, title="RSI Threshold 4")
+
+rsi_long_timeframe_input1 = input.timeframe(defval = "D", title = "RSI Timeframe 1", group = "RSI Long Indicator")
+rsi_long_range_input1 = input.int(50, "RSI Threshold >=", minval=1, group = "RSI Long Indicator")
+rsi_long_timeframe_input2 = input.timeframe(defval = "W", title = "RSI Timeframe 2", group = "RSI Long Indicator")
+rsi_long_range_input2 = input.int(50, "RSI Threshold >=", minval=1, group = "RSI Long Indicator")
+rsi_timeframe1 = request.security(syminfo.tickerid, rsi_long_timeframe_input1, rsi_strategy_input, gaps=barmerge.gaps_off)
+rsi_timeframe2 = request.security(syminfo.tickerid, rsi_long_timeframe_input2, rsi_strategy_input, gaps=barmerge.gaps_off)
+show_rsi_long_trigger_lines = input.bool(false, "Visible", group = "RSI Long Indicator", tooltip = "")
+bgcolor(rsi_timeframe1 >= rsi_long_range_input1 and rsi_timeframe2 >= rsi_long_range_input2 and show_rsi_long_trigger_lines ? color.new(color.orange, 55) : na)
+
+rsi_long_timeframe_input3 = input.timeframe(defval = "60", title = "RSI Timeframe 1", group = "RSI Long Indicator 2")
+rsi_long_range_input3 = input.int(30, "RSI Threshold <=", minval=1, group = "RSI Long Indicator 2")
+rsi_long_timeframe_input4 = input.timeframe(defval = "240", title = "RSI Timeframe 2", group = "RSI Long Indicator 2")
+rsi_long_range_input4 = input.int(30, "RSI Threshold <=", minval=1, group = "RSI Long Indicator 2")
+rsi_timeframe3 = request.security(syminfo.tickerid, rsi_long_timeframe_input3, rsi_strategy_input, gaps=barmerge.gaps_off)
+rsi_timeframe4 = request.security(syminfo.tickerid, rsi_long_timeframe_input4, rsi_strategy_input, gaps=barmerge.gaps_off)
+show_rsi_long_trigger_lines2 = input.bool(false, "Visible", group = "RSI Long Indicator 2")
+bgcolor(rsi_timeframe3 <= rsi_long_range_input3 and rsi_timeframe4 <= rsi_long_range_input4 and show_rsi_long_trigger_lines2 ? color.new(color.orange, 55) : na)
+
+
+rsi_short_timeframe_input1 = input.timeframe(defval="60", title="RSI Timeframe 1", group="RSI Short Indicator")
+rsi_short_range_input1 = input.int(70, "RSI Threshold >=", minval=1, group = "RSI Short Indicator")
+rsi_short_timeframe_input2 = input.timeframe(defval="240", title="RSI Timeframe 2", group="RSI Short Indicator")
+rsi_short_range_input2 = input.int(70, "RSI Threshold >=", minval=1, group = "RSI Short Indicator")
+rsi_short_timeframe1 = request.security(syminfo.tickerid, rsi_short_timeframe_input1, rsi_strategy_input, gaps=barmerge.gaps_off)
+rsi_short_timeframe2 = request.security(syminfo.tickerid, rsi_short_timeframe_input2, rsi_strategy_input, gaps=barmerge.gaps_off)
+show_rsi_short_trigger_lines = input.bool(false, "Visible", group = "RSI Short Indicator", tooltip = "")
+bgcolor(rsi_short_timeframe1 >= rsi_short_range_input1 and rsi_short_timeframe2 >= rsi_short_range_input2 and show_rsi_short_trigger_lines ? color.new(color.orange, 55) : na)
+
+// Custom Timeframe RSI Level
+rsi_custom_timeframe_input = input.timeframe(defval = "D", title="Timeframe", group = "Custom Timeframe RSI Level")
+rsi_threshold_input = input.float(30, "RSI Threshold", group = "Custom Timeframe RSI Level")
+show_rsi_custom_timeframe_input = input.bool(false, "Show Price Level for Custom RSI Timeframe", group = "Custom Timeframe RSI Level")
+
+ReverseFunction2(Level) =>
+    x1 = (length_input - 1) * (request.security(syminfo.tickerid, rsi_custom_timeframe_input, ta.rma(math.max(nz(source_input[1], source_input) - source_input, 0), length_input)) * Level / (100 - Level) - request.security(syminfo.tickerid, rsi_custom_timeframe_input, ta.rma(math.max(source_input - nz(source_input[1], source_input), 0), length_input)))
+    x1 >= 0 ? source_input + x1 : source_input + x1 * (100 - Level) / Level
+
+rsi_in_timeframe_price = ReverseFunction2(rsi_threshold_input)
+plot(show_rsi_custom_timeframe_input ? RoundFunction(rsi_in_timeframe_price, decimals_input) : na, "RSI 30 Horizontal Line", color=color.lime, trackprice=true, show_last=1)

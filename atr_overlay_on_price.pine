@@ -1,0 +1,31 @@
+//@version=5
+indicator("ATR Overlay on Price", overlay=true)
+
+// Timeframe input
+timeframe_input = input.timeframe(defval = "", title="Timeframe")
+
+// ATR calculation in selected timeframe
+atrLength = input.int(14, "ATR Length", minval=1)
+atrMultiplier = input.float(1.0, "ATR Multiplier", step=0.1)
+
+// Request ATR from selected timeframe
+atr_in_timeframe = request.security(syminfo.tickerid, timeframe_input, ta.atr(atrLength))
+
+// Band calculations in selected timeframe
+upper_band_source_input = input.source(close, "Upper Band Source")
+lower_band_source_input = input.source(close, "Lower Band Source")
+
+upper_band = upper_band_source_input + atr_in_timeframe * atrMultiplier
+lower_band = lower_band_source_input - atr_in_timeframe * atrMultiplier
+
+// Plot the bands
+upper_band_plot = plot(upper_band, "Upper ATR Band", color=color.new(color.blue, 70))
+lower_band_plot = plot(lower_band, "Lower ATR Band", color=color.new(color.blue, 70))
+fill(upper_band_plot, lower_band_plot, color=color.new(color.blue, 95), title="ATR Range", display=display.none)
+
+// Input to toggle dashboard visibility
+show_dashboard = input.bool(defval=true, title="Show Dashboard")
+var table dashboard = table.new(position.bottom_right, 1, 3, border_color = color.white, border_width = 1, frame_color = color.white, frame_width = 1) 
+if (show_dashboard)
+    table.cell(dashboard, 0, 0, "Upper: " + str.tostring(upper_band, "#.##"), text_color=color.white)
+    table.cell(dashboard, 0, 1, "Lower: " + str.tostring(lower_band, "#.##"), text_color=color.white)

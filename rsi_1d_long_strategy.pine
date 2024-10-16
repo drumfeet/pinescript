@@ -1,0 +1,47 @@
+//@version=5
+strategy("RSI 1D Long Strategy", overlay=true, margin_long=0, margin_short = 0, default_qty_type=strategy.cash, default_qty_value=1000, initial_capital=500, commission_type=strategy.commission.percent, commission_value=0.0750, dynamic_requests = true)
+
+// RSI Settings
+length_input = input.int(14, "Length", minval=2, group="RSI Settings")
+source_input = input.source(ohlc4, "Source", group="RSI Settings")
+rsi_strategy_input = ta.rsi(source_input, length_input)
+
+// Trading Date Range
+startDateInput = input.time(timestamp("2024-01-01 00:00"), title="Start Date", group="Trading Date Range")
+endDateInput = input.time(timestamp("2024-12-31 23:45"), title="End Date", group="Trading Date Range")
+inDateRange = (time >= startDateInput and time <= endDateInput)
+
+// ---- RSI Buy Strategy ----
+show_rsi_buy_trigger_lines = input.bool(false, "Show RSI Buy Lines", group="RSI Buy Strategy", tooltip="")
+rsi_buy_timeframe_input1 = input.timeframe(defval="D", title="RSI Buy Timeframe 1", group="RSI Buy Strategy")
+rsi_buy_range_input1 = input.int(30, "RSI Buy Level <=", minval=1, group="RSI Buy Strategy")  // RSI Buy Level Threshold
+rsi_buy_level_timeframe1 = request.security(syminfo.tickerid, rsi_buy_timeframe_input1, ta.rsi(source_input, length_input), gaps=barmerge.gaps_off)
+
+// Define Buy Condition
+buyCondition = rsi_buy_level_timeframe1 <= rsi_buy_range_input1
+bgcolor(buyCondition and show_rsi_buy_trigger_lines ? color.new(color.yellow, 60) : na)  // Background color for buy signal
+
+// ---- ATR Take Profit Strategy ----
+atr_sell_timeframe_input = input.timeframe("D", title="ATR Timeframe", group="ATR Sell Strategy")
+atr_sell_value = request.security(syminfo.tickerid, atr_sell_timeframe_input, ta.atr(length_input))
+atr_take_profit_level = strategy.position_avg_price + atr_sell_value
+
+// ---- ATR Stop Loss ----
+atr_timeframe = input.timeframe("D", title="ATR Timeframe", group="ATR Stop Loss")
+atr_stop_loss = request.security(syminfo.tickerid, atr_timeframe, ta.atr(length_input))
+stop_loss_level = strategy.position_avg_price - atr_stop_loss
+
+if (inDateRange)
+    if (buyCondition)
+        strategy.entry("Entry", strategy.long)
+        
+    strategy.exit("Exit", from_entry="Entry", limit=atr_take_profit_level, stop=stop_loss_level)
+
+// Plot a line for the average entry price for visualization
+plot(strategy.position_avg_price, title="Entry Price", color=color.gray, linewidth=1)
+
+// Plot the stop loss level as a red line
+plot(stop_loss_level, title="Stop Loss", color=color.red, linewidth=1)
+
+// Plot the ATR-based take profit level as a yellow line
+plot(atr_take_profit_level, title="ATR Take Profit", color=color.yellow, linewidth=1)
